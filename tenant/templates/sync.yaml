@@ -5,7 +5,7 @@ metadata:
   name: {{ .Values.namespace }}-repo
   namespace: {{ .Values.namespace }}
 spec:
-  interval: 10m
+  interval: {{ .Values.repository.interval }}
   url: {{ .Values.repository.url }}
   ref:
     branch: {{ .Values.repository.branch }}
