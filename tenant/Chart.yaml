@@ -2,7 +2,7 @@ apiVersion: v2
 name: tenant
 description: Manages FluxCD tenants in a Kubernetes cluster
 type: application
-version: 0.3.0
+version: 0.3.1
 keywords:
   - flux
   - tenant
