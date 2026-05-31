@@ -6,8 +6,9 @@ Helm charts for the CruLabs cluster.
 
 | Name           | Description                          |
 |----------------|--------------------------------------|
-| [tenant](./tenant)       | Manages Flux CD tenants              |
 | [cnpg-cluster](./cnpg-cluster)   | CloudNativePG cluster wrapper        |
+| [tenant](./tenant)       | Manages Flux CD tenants              |
+| [tenant-access](./tenant-access)       | Manages cross-tenant and user RBAC bindings              |
 
 ## Scope
 
