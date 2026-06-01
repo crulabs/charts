@@ -1,0 +1,15 @@
+{{- if eq .Values.type "postgresql" }}
+apiVersion: postgresql.cnpg.io/v1
+kind: ImageCatalog
+metadata:
+  name: postgresql
+  namespace: {{ .Release.Namespace }}
+spec:
+  images:
+    - major: 16
+      image: ghcr.io/cloudnative-pg/postgresql:16.14
+    - major: 17
+      image: ghcr.io/cloudnative-pg/postgresql:17.10
+    - major: 18
+      image: ghcr.io/cloudnative-pg/postgresql:18.4
+{{ end }}

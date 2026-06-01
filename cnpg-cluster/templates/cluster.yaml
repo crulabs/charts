@@ -4,16 +4,11 @@ metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
 spec:
-
-{{- if eq .Values.type "postgres" }}
-  imageName: {{ .Values.imageName }}
-{{- else if eq .Values.type "timescaledb" }}
   imageCatalogRef:
     apiGroup: postgresql.cnpg.io
     kind: ImageCatalog
-    name: {{ .Release.Name }}-timescaledb-ha
+    name: {{ .Values.type }}
     major: {{ .Values.version }}
-{{- end }}  
   instances: {{ .Values.instances }}
   postgresUID: {{ if eq .Values.type "timescaledb" }}1000{{ else }}26{{ end }}
   postgresGID: {{ if eq .Values.type "timescaledb" }}1000{{ else }}26{{ end }}
@@ -34,41 +29,53 @@ spec:
       {{- $sql = append $sql "CREATE EXTENSION IF NOT EXISTS timescaledb;" }}
       {{- end }}
 
+      {{- if $sql }}
       postInitApplicationSQL:
-{{ toYaml $sql | nindent 8 }}
+      {{ toYaml $sql | nindent 8 }}
+      {{- end }}
 
-
-  enableSuperuserAccess: {{ .Values.enableSuperuserAccess }}
+  {{- if .Values.enableSuperuserAccess }}
+  enableSuperuserAccess: true 
   superuserSecret:
     name: {{ .Values.superuserSecret.name }}
+  {{- end }}
 
   storage:
     storageClass: {{ .Values.storageClass }}
     size: {{ .Values.storage.size }}
-  {{with .Values.resources }}
+
+  {{- with .Values.resources }}
   resources:
     {{- toYaml . | nindent 4 }}
-  {{ end }}
+  {{- end }}
 
-{{- if .Values.backup.enabled }}
-{{- $obc := printf "%s-backups" .Release.Name }}
-{{- $bucketConfig := (lookup "v1" "ConfigMap" .Release.Namespace $obc) }}
-{{- $bucketName := .Values.backup.destinationPath | default "" }}
-{{- $bucketHost := .Values.backup.endpointURL | default "" }}
-{{- if $bucketConfig.data }}
-{{- $bucketName = printf "s3://%s/" (get $bucketConfig.data "BUCKET_NAME") }}
-{{- $bucketHost = printf "http://%s:%s" (get $bucketConfig.data "BUCKET_HOST") (get $bucketConfig.data "BUCKET_PORT") }}
-{{- end }}
+  {{- if .Values.backup.enabled }}
+  {{- $bucketName := "" }}
+  {{- $bucketHost := "" }}
+  {{- $secretName := .Values.backup.secret.name | default .Values.backup.obc.name }}
+
+  {{- if .Values.backup.obc.name }}
+    {{- $bucketConfig := (lookup "v1" "ConfigMap" .Release.Namespace .Values.backup.obc.name) }}
+    {{- if $bucketConfig.data }}
+      {{- $bucketName = printf "s3://%s/" (get $bucketConfig.data "BUCKET_NAME") }}
+      {{- $bucketHost = printf "http://%s:%s" (get $bucketConfig.data "BUCKET_HOST") (get $bucketConfig.data "BUCKET_PORT") }}
+    {{- end }}
+  {{- else }}
+    {{- $bucketName = .Values.backup.destinationPath }}
+    {{- $bucketHost = .Values.backup.endpointURL }}
+  {{- end }}
+
+  {{- if and $bucketName $bucketHost }}
   backup:
     barmanObjectStore:
-      destinationPath: {{ .Values.backup.destinationPath | default $bucketName }}
-      endpointURL: {{ .Values.backup.endpointURL | default $bucketHost }}
+      destinationPath: {{ $bucketName }}
+      endpointURL: {{ $bucketHost }}
       s3Credentials:
         accessKeyId:
-          name: {{ .Values.backup.secret.name | default ( printf "%s-backups" .Release.Name ) }}
+          name: {{ $secretName }}
           key: AWS_ACCESS_KEY_ID
         secretAccessKey:
-          name: {{ .Values.backup.secret.name | default ( printf "%s-backups" .Release.Name ) }}
+          name: {{ $secretName }}
           key: AWS_SECRET_ACCESS_KEY
       wal:
         compression: gzip
@@ -76,17 +83,18 @@ spec:
         compression: gzip
         jobs: 2
     retentionPolicy: {{ .Values.backup.retentionPolicy }}
-{{- end }}
+  {{- end }}
+  {{- end }}
 
   affinity:
     enablePodAntiAffinity: {{ .Values.affinity.enablePodAntiAffinity }}
     topologyKey: {{ .Values.affinity.topologyKey }}
 
-{{- if eq .Values.type "timescaledb" }}
+  {{- if eq .Values.type "timescaledb" }}
   postgresql:
     shared_preload_libraries:
       - timescaledb
-{{- end }}
+  {{- end }}
 
   monitoring:
     enablePodMonitor: {{ .Values.monitoring.enablePodMonitor }}

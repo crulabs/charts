@@ -1,12 +1,13 @@
 # cloudnative-pg
 
-![Version: 1.1.2](https://img.shields.io/badge/Version-1.1.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 2.0.0](https://img.shields.io/badge/Version-2.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
 This cloudnative-pg Helm Chart is a simple wrapper chart to deploy a [CloudNativePG](https://cloudnative-pg.io) cluster in Kubernetes.
 
 ## Table of Contents
 
 - [Features](#features)
+- [Database Types]()
 - [Installation](#installation)
 - [Examples](./examples/)
 - [Secrets](#secrets)
@@ -14,7 +15,7 @@ This cloudnative-pg Helm Chart is a simple wrapper chart to deploy a [CloudNativ
 - [Parameters](#parameters)
 - [Roadmap](#roadmap)
 - [References](#references)
-- [Changelog](#changelog)
+- [Changelog](./CHANGELOG.md)
 
 ## Features
 
@@ -28,6 +29,38 @@ This cloudnative-pg Helm Chart is a simple wrapper chart to deploy a [CloudNativ
   - Backups (S3-compatible via Rook/Ceph Object Storage, including retention & schedule)
   - Affinity & PodAntiAffinity
   - Monitoring via PodMonitor
+
+## Database Types
+
+The chart supports two database types via `type`:
+
+### PostgreSQL
+
+Standard PostgreSQL cluster — the default:
+
+```yaml
+type: postgresql
+version: 17
+```
+
+### TimescaleDB
+
+Deploys a [TimescaleDB](https://www.timescale.com/) cluster using the `timescaledb-ha` image. The `timescaledb` extension is automatically added to `postInitApplicationSQL`:
+
+```yaml
+type: timescaledb
+version: 18
+```
+
+> **Note:** major versions must match an available image in the `ImageCatalog`. 
+
+### Currently available major versions are:
+
+| Image      | Version |
+| -- | -- |
+| postgresql | 16, 17, 18 |
+| timescaledb-ha | 16, 18 |
+
 
 ## Installation
 
@@ -47,7 +80,7 @@ spec:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
   ref:
-    tag: "1.0.0"
+    tag: "2.0.0"
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -89,7 +122,21 @@ Backups are configured via S3-compatible object storage. The chart natively inte
 
 ### Rook/Ceph Integration
 
-When `backup.enabled: true`, the chart automatically creates an `ObjectBucketClaim` named `<release-name>-backups` in the same namespace. Rook/Ceph provisions the bucket and creates a matching ConfigMap and Secret with the same name containing the connection details:
+Deploy an OBC in the same namespace as the cluster:
+
+
+```yaml
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: postgres-backups
+  namespace: <namespace>
+spec:
+  generateBucketName: postgres-backups
+  storageClassName: rook-ceph-bucket
+```
+
+Rook/Ceph provisions the bucket and creates a matching ConfigMap and Secret with the same name containing the connection details:
 
 ```
 ConfigMap: <release-name>-backups
@@ -102,14 +149,18 @@ Secret: <release-name>-backups
   AWS_SECRET_ACCESS_KEY → bucket secret key
 ```
 
-The chart reads these automatically, no manual configuration of `destinationPath` or `endpointURL` is required when using Rook/Ceph.
+Reference the OBC by name in your values, the chart reads the connection details automatically:
 
 ```yaml
 backup:
   enabled: true
+  obc:
+    name: postgres-backup
   retentionPolicy: "30d"
   schedule: "0 0 0 * * *"
 ```
+
+> **Note:** The OBC (ObjectBucketClaim) must be fully provisioned before backups are enabled.
 
 ### Custom S3 Endpoint
 
@@ -118,21 +169,21 @@ If you want to use a different S3-compatible backend, you can override `destinat
 ```yaml
 backup:
   enabled: true
-  destinationPath: "s3://my-bucket/"
-  endpointURL: "https://my-s3-endpoint"
+  destinationPath: "s3://<bucket-name>/"
+  endpointURL: "https://<s3-endpoint>"
   secret:
-    name: my-backup-credentials
+    name: <backup-credentials-secret>
   retentionPolicy: "30d"
   schedule: "0 0 0 * * *"
 ```
 
-The credentials secret must contain the keys `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`:
+The secret must contain the keys `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`:
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: my-backup-credentials
+  name: <backup-credentials-secret>
   namespace: <namespace>
 type: Opaque
 stringData:
@@ -144,27 +195,32 @@ stringData:
 
 | Parameter | Description | Default |
 |---|---|---|
-| `imageName` | PostgreSQL container image | `ghcr.io/cloudnative-pg/postgresql:17.5` |
-| `type` | 'postgres' or 'timescaledb' | `postgres` |
+| `type` | Database type: `postgresql` or `timescaledb` | `postgresql` |
+| `version` | Major version (e.g. `17`) | `17` |
 | `instances` | Number of cluster instances | `2` |
-| `version` |  major version, only needed for timescaledb, ignored for postgres (number, not string) | `16` |
 | `initdb.database` | Default database name | `""` defaults to release name |
 | `initdb.owner` | Database owner | `app` |
 | `initdb.secret.name` | Secret containing user credentials | `cnpg-app-user` |
-| `initdb.postInitSQL` | List of SQL queries executed as superuser in the postgres database after cluster creation | `[]` |
-| `initdb.postInitApplicationSQL` | List of SQL queries executed as superuser in the app database after cluster creation | `[]` |
-| `enableSuperuserAccess` | Enable/disable superuser access | `false` |
-| `superuserSecret.name` | Secret with superuser credentials | `cnpg-superuser` |
+| `initdb.postInitSQL` | SQL statements executed as superuser in the `postgres` database after initialization | `[]` |
+| `initdb.postInitApplicationSQL` | SQL statements executed as superuser in the app database after initialization | `[]` |
+| `enableSuperuserAccess` | Enable superuser access | `false` |
+| `superuserSecret.name` | Secret containing superuser credentials | `cnpg-superuser` |
 | `storageClass` | StorageClass for PVCs | `local-path` |
 | `storage.size` | Volume size | `5Gi` |
+| `resources.requests.cpu` | CPU request | `250m` |
+| `resources.requests.memory` | Memory request | `256Mi` |
+| `resources.limits.cpu` | CPU limit | `1000m` |
+| `resources.limits.memory` | Memory limit | `1Gi` |
 | `backup.enabled` | Enable backups | `false` |
-| `backup.destinationPath` | Backup destination (S3-compatible) | `""` auto-resolved from OBC ConfigMap |
-| `backup.endpointURL` | S3 endpoint URL | `""` auto-resolved from OBC ConfigMap |
-| `backup.secret.name` | Secret with backup credentials | `""` defaults to `<release-name>-backups` |
+| `backup.obc.name` | Name of an existing OBC — connection details are resolved automatically | `""` |
+| `backup.obc.storageClassName` | StorageClass used by the OBC | `rook-ceph-bucket` |
+| `backup.destinationPath` | S3 destination path, used when not using an OBC | `""` |
+| `backup.endpointURL` | S3 endpoint URL, used when not using an OBC | `""` |
+| `backup.secret.name` | Secret containing backup credentials, defaults to OBC name | `""` |
 | `backup.schedule` | Cron schedule for backups | `0 0 0 * * *` |
-| `backup.retentionPolicy` | Retention policy for backups | `30d` |
-| `affinity.enablePodAntiAffinity` | Enable PodAntiAffinity | `false` |
-| `affinity.topologyKey` | Topology key for PodAntiAffinity | `kubernetes.io/hostname` |
+| `backup.retentionPolicy` | Backup retention policy | `30d` |
+| `affinity.enablePodAntiAffinity` | Spread instances across nodes | `true` |
+| `affinity.topologyKey` | Topology key for pod anti-affinity | `kubernetes.io/hostname` |
 | `monitoring.enablePodMonitor` | Enable PodMonitor CR for Prometheus | `true` |
 
 ## Roadmap
@@ -175,58 +231,3 @@ stringData:
 
 - [CloudNativePG Documentation](https://cloudnative-pg.io/documentation/)
 - [Rook/Ceph Object Storage](https://rook.io/docs/rook/latest/Storage-Configuration/Object-Storage-RGW/object-storage/)
-
-## Changelog
-### 1.1.2
-- **feat:** make resource quota configurable
-
-### 1.1.1
-
-- **fix**: `postgresUID` and `postgresGID` are now dynamically set based on `.Values.type` to prevent immutability conflicts on existing PostgreSQL clusters. TimescaleDB uses UID/GID 1000, all other types fall back to 26.
-
-### 1.1.0
-- introduce `type` switch between postgres and timescaledb
-- add ImageCatalogRef support for TimescaleDB deployments
-- refactor postInitApplicationSQL handling to always render a valid array
-- ensure CNPG compatibility by preventing null values in SQL configuration
-- add automatic TimescaleDB extension injection for timescaledb type
-- add shared_preload_libraries configuration for TimescaleDB
-- add examples directory reference in README
-- remove outdated minimal-with-backup example
-- improve test values and introduce version field for major DB selection
-- ensure Helm templates are safe for server-side apply (typed validation fixes)
-
-### 1.0.2
-- Fix malformed `printf` call in cluster template causing render error
-
-### 1.0.1
-- Fix OBC and secret name missing `-backups` suffix, causing credential lookup to fail
-
-### 1.0.0
-**BREAKING CHANGE**: secret keys renamed from `ACCESS_KEY_ID`/`ACCESS_SECRET_KEY` to `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`
-
-- Add native Rook/Ceph OBC integration for automatic bucket provisioning
-- Auto-resolve `destinationPath` and `endpointURL` from ObjectBucketClaim ConfigMap
-- Create OBC only when no custom `destinationPath` is provided
-- Default secret name to `<release-name>-backups` when not specified
-- Set `backup.enabled` to `false` by default
-- Remove hardcoded MinIO endpoint from default values
-
-### 0.4.1
-- Fix for wrong value path
-
-### 0.4.0
-- Add support for `initdb.postInitApplicationSQL` in CNPG cluster chart
-- Allow execution of SQL statements for application database after cluster initialization
-- README documentation for usage
-
-### 0.3.0
-- Add support for `initdb.postInitSQL` in CNPG cluster chart
-- Allow execution of SQL statements after cluster initialization
-- README documentation for post-init SQL usage
-
-### 0.2.0
-- **fix**: Set `backupOwnerReference: cluster` in ScheduledBackup to ensure old backup objects are automatically cleaned up according to the retention policy
-
-### 0.1.0
-- Initial release

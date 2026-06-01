@@ -1,7 +1,17 @@
 # This example shows how to deploy a minimal CloudNative-PG cluster with backup enabled.
 # What you get: 5GB of storage, backup to an S3-compatible object store, 
 # and a retention policy of 30 days (meaning that backups will be deleted after 30 days).
+# Make sure to create the referenced OBC and Secret before applying this manifest.
 #
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: example-backups-1
+  namespace: example
+spec:
+  generateBucketName: example-backups-1
+  storageClassName: rook-ceph-bucket
+---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
@@ -28,10 +38,14 @@ spec:
     name: cnpg-cluster
     namespace: example
   values:
+    type: postgresql
+    version: 17
     storage:
       size: 10Gi # whatever is needed in your use case
     backup:
       enabled: true # enable backup if you want to use it, otherwise it will be disabled by default
+      obc:
+        name: example-backups-1 # reference to the OBC created above
 ---
 #  Keep in mind to seal your secret before pushing it to Git!
 apiVersion: v1

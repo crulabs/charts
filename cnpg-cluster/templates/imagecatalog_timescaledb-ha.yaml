@@ -2,7 +2,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: ImageCatalog
 metadata:
-  name: {{ .Release.Name }}-timescaledb-ha
+  name: timescaledb-ha
   namespace: {{ .Release.Namespace }}
 spec:
   images:
