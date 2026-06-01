@@ -20,15 +20,8 @@ This cloudnative-pg Helm Chart is a simple wrapper chart to deploy a [CloudNativ
 ## Features
 
 - Deploys a **CloudNativePG cluster** via Helm
+- PostgreSQL and TimescaleDB-HA support
 - Easy configuration through values
-- Built-in options for:
-  - PostgreSQL image & replicas
-  - InitDB (database, owner, secrets)
-  - Superuser access
-  - Storage & StorageClass
-  - Backups (S3-compatible via Rook/Ceph Object Storage, including retention & schedule)
-  - Affinity & PodAntiAffinity
-  - Monitoring via PodMonitor
 
 ## Database Types
 
