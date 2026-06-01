@@ -16,7 +16,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: kubeconfig-generator
-          image: alpine/k8s:1.35.0
+          image: alpine/k8s:1.36.1
           command:
             - /bin/sh
             - -c
