@@ -1,10 +1,8 @@
-imageName: ghcr.io/cloudnative-pg/postgresql:17.5
-type: postgres
-instances: 2
-version: 16 # major version, only needed for timescaledb, ignored for postgres
+# Default values for cnpg-cluster.
+type: postgresql
+version: 17
 
-postgresUID: 
-postgresGID: 
+instances: 2
 
 initdb:
   database: "" # defaults to release name
@@ -40,6 +38,9 @@ resources:
 
 backup:
   enabled: false
+  obc:
+    name: ""
+    storageClassName: rook-ceph-bucket
   destinationPath: ""
   endpointURL: ""
   secret:
@@ -48,18 +49,8 @@ backup:
   retentionPolicy: "30d"
 
 affinity:
-  enablePodAntiAffinity: false
+  enablePodAntiAffinity: true
   topologyKey: kubernetes.io/hostname
 
 monitoring:
   enablePodMonitor: true
-
-# Connection pooler (PgBouncer)
-pooler:
-  enabled: false
-  instances: 2
-  type: rw  # rw (read-write) or ro (read-only)
-  poolMode: session  # session, transaction, or statement
-  parameters:
-    max_client_conn: "1000"
-    default_pool_size: "25"
