@@ -1,12 +1,38 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
   "extends": [
     "config:recommended"
   ],
+
   "helm-values": {
     "fileMatch": ["(^|/).*\\.ya?ml$"]
   },
+
   "kubernetes": {
     "fileMatch": ["(^|/).*\\.ya?ml$"]
-  }
+  },
+
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "cnpg-cluster/templates/imagecatalog.*\\.ya?ml$"
+      ],
+      "matchStrings": [
+        "image:\\s*(?<depName>ghcr\\.io/cloudnative-pg/postgresql):(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "cnpg-cluster/templates/imagecatalog.*\\.ya?ml$"
+      ],
+      "matchStrings": [
+        "image:\\s*(?<depName>timescale/timescaledb-ha):(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
 }
