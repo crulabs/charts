@@ -1,4 +1,7 @@
 # Changelog
+## [2.0.1]
+- **fix:**: typo in imagecatalog
+
 ## [2.0.0]
 
 ### Breaking Changes
