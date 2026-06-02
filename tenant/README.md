@@ -1,6 +1,6 @@
 # tenant
 
-![Version: 0.3.1](https://img.shields.io/badge/Version-0.3.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 0.4.0](https://img.shields.io/badge/Version-0.4.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
 This Helm Chart manages Flux CD tenants in a Kubernetes cluster. Instead of copying namespace, RBAC, quota and network policy manifests for every team, a single HelmRelease per tenant is enough.
 
@@ -104,6 +104,8 @@ Adding a new tenant means creating a folder with a HelmRelease, committing it â€
 
 
 ## Changelog
+### 0.4.0
+- **feat:** added decryption block
 ### 0.3.1
 - **fix:** render networkpolicy only if ingress or egress is configured
 

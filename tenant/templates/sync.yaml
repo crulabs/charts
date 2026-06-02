@@ -28,3 +28,7 @@ spec:
   prune: true
   targetNamespace: {{ .Values.namespace }}
   serviceAccountName: {{ .Values.namespace }}
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-gpg
