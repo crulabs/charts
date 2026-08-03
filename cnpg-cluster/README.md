@@ -1,6 +1,6 @@
 # cloudnative-pg
 
-![Version: 2.0.1](https://img.shields.io/badge/Version-2.0.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 3.0.0](https://img.shields.io/badge/Version-3.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
 This cloudnative-pg Helm Chart is a simple wrapper chart to deploy a [CloudNativePG](https://cloudnative-pg.io) cluster in Kubernetes.
 
@@ -12,16 +12,16 @@ This cloudnative-pg Helm Chart is a simple wrapper chart to deploy a [CloudNativ
 - [Examples](./examples/)
 - [Secrets](#secrets)
 - [Backups](#backups)
+- [Recovery](#recovery)
 - [Parameters](#parameters)
-- [Roadmap](#roadmap)
 - [References](#references)
 - [Changelog](./CHANGELOG.md)
 
 ## Features
 
-- Deploys a **CloudNativePG cluster** via Helm
+- Deploys a **CloudNativePG cluster**
 - PostgreSQL and TimescaleDB-HA support
-- Easy configuration through values
+- Integrated S3 Backups & Disaster Recovery via CloudNativePG Barman Cloud plugin
 
 ## Database Types
 
@@ -73,7 +73,7 @@ spec:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
   ref:
-    tag: "2.0.0"
+    tag: "3.0.0"
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -122,22 +122,22 @@ Deploy an OBC in the same namespace as the cluster:
 apiVersion: objectbucket.io/v1alpha1
 kind: ObjectBucketClaim
 metadata:
-  name: postgres-backups
+  name: <bucket-claim-name>
   namespace: <namespace>
 spec:
-  generateBucketName: postgres-backups
+  bucketName: postgres-backups
   storageClassName: rook-ceph-bucket
 ```
 
 Rook/Ceph provisions the bucket and creates a matching ConfigMap and Secret with the same name containing the connection details:
 
 ```
-ConfigMap: <release-name>-backups
+ConfigMap: <bucket-claim-name>
   BUCKET_HOST  → RGW service hostname
-  BUCKET_NAME  → auto-generated bucket name
+  BUCKET_NAME  → bucket name
   BUCKET_PORT  → RGW service port
 
-Secret: <release-name>-backups
+Secret: <bucket-claim-name>
   AWS_ACCESS_KEY_ID     → bucket access key
   AWS_SECRET_ACCESS_KEY → bucket secret key
 ```
@@ -149,53 +149,42 @@ backup:
   enabled: true
   obc:
     name: postgres-backup
-  retentionPolicy: "30d"
-  schedule: "0 0 0 * * *"
 ```
 
-> **Note:** The OBC (ObjectBucketClaim) must be fully provisioned before backups are enabled.
+> **Note:** The OBC (ObjectBucketClaim) must be fully provisioned before backups are enabled. If `backup.secret.name` is left empty, the chart defaults to using the `backup.obc.name` secret for authentication credentials.
 
-### Custom S3 Endpoint
-
-If you want to use a different S3-compatible backend, you can override `destinationPath` and `endpointURL` manually, and provide your own credentials secret:
+## Recovery
+You can bootstrap a new cluster by restoring from an existing external backup stored in S3.
+To enable cluster recovery, configure the `recovery` block:
 
 ```yaml
-backup:
+recovery:
   enabled: true
-  destinationPath: "s3://<bucket-name>/"
-  endpointURL: "https://<s3-endpoint>"
-  secret:
-    name: <backup-credentials-secret>
-  retentionPolicy: "30d"
-  schedule: "0 0 0 * * *"
+  serverName: "original-cluster-release-name"
+  obc:
+    name: <bucket-claim-name>
+    endpoint: <bucket-host>
 ```
 
-The secret must contain the keys `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`:
+When `recovery.enabled` is set to `true`:
 
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: <backup-credentials-secret>
-  namespace: <namespace>
-type: Opaque
-stringData:
-  AWS_ACCESS_KEY_ID: <access-key-id>
-  AWS_SECRET_ACCESS_KEY: <access-secret-key>
-```
+1. `bootstrap.recovery.source` is set to `origin`.
+
+2. An `externalClusters` entry named `origin` is attached using the `barman-cloud.cloudnative-pg.io` plugin pointing to `serverName`.
+
 
 ## Parameters
 
 | Parameter | Description | Default |
-|---|---|---|
+|-----------|-------------|---------|
 | `type` | Database type: `postgresql` or `timescaledb` | `postgresql` |
 | `version` | Major version (e.g. `17`) | `17` |
 | `instances` | Number of cluster instances | `2` |
-| `initdb.database` | Default database name | `""` defaults to release name |
-| `initdb.owner` | Database owner | `app` |
+| `initdb.database` | Default database name | `""` (defaults to release name) |
+| `initdb.owner` | Database owner username | `app` |
 | `initdb.secret.name` | Secret containing user credentials | `cnpg-app-user` |
 | `initdb.postInitSQL` | SQL statements executed as superuser in the `postgres` database after initialization | `[]` |
-| `initdb.postInitApplicationSQL` | SQL statements executed as superuser in the app database after initialization | `[]` |
+| `initdb.postInitApplicationSQL` | SQL statements executed as superuser in the application database after initialization | `[]` |
 | `enableSuperuserAccess` | Enable superuser access | `false` |
 | `superuserSecret.name` | Secret containing superuser credentials | `cnpg-superuser` |
 | `storageClass` | StorageClass for PVCs | `local-path` |
@@ -204,23 +193,27 @@ stringData:
 | `resources.requests.memory` | Memory request | `256Mi` |
 | `resources.limits.cpu` | CPU limit | `1000m` |
 | `resources.limits.memory` | Memory limit | `1Gi` |
-| `backup.enabled` | Enable backups | `false` |
-| `backup.obc.name` | Name of an existing OBC — connection details are resolved automatically | `""` |
-| `backup.obc.storageClassName` | StorageClass used by the OBC | `rook-ceph-bucket` |
-| `backup.destinationPath` | S3 destination path, used when not using an OBC | `""` |
-| `backup.endpointURL` | S3 endpoint URL, used when not using an OBC | `""` |
-| `backup.secret.name` | Secret containing backup credentials, defaults to OBC name | `""` |
-| `backup.schedule` | Cron schedule for backups | `0 0 0 * * *` |
+| `backup.enabled` | Enable continuous WAL archiving and scheduled backups via Barman plugin | `false` |
+| `backup.suspend` | Temporarily suspend backup schedules (e.g. for maintenance) | `false` |
+| `backup.immediate` | Trigger a backup immediately upon operator reconciliation | `false` |
+| `backup.obc.name` | Name of the ObjectBucketClaim for backups | `""` |
+| `backup.obc.endpoint` | Endpoint URL for the S3 object store | `http://rook-ceph-rgw-objectstore.rook-ceph.svc:80` |
+| `backup.secret.name` | Secret containing `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` | `""` (defaults to OBC name) |
+| `backup.schedule` | Cron schedule for physical backups | `0 0 0 * * *` |
 | `backup.retentionPolicy` | Backup retention policy | `30d` |
+| `recovery.enabled` | Enable bootstrapping the cluster from an external backup | `false` |
+| `recovery.serverName` | Name of the original server/cluster in the backup | `""` |
+| `recovery.obc.name` | Name of the ObjectBucketClaim holding the backup to recover from | `""` |
+| `recovery.obc.endpoint` | Endpoint URL for the recovery S3 object store | `http://rook-ceph-rgw-objectstore.rook-ceph.svc:80` |
+| `recovery.secret.name` | Secret containing recovery S3 credentials | `""` (defaults to OBC name) |
 | `affinity.enablePodAntiAffinity` | Spread instances across nodes | `true` |
 | `affinity.topologyKey` | Topology key for pod anti-affinity | `kubernetes.io/hostname` |
-| `monitoring.enablePodMonitor` | Enable PodMonitor CR for Prometheus | `true` |
+| `monitoring.enabled` | Enable monitoring configuration | `true` |
+| `monitoring.podMonitor.enabled` | Create a `PodMonitor` resource for Prometheus Operator scraping | `true` |
 
-## Roadmap
-
-- Restore from backup
 
 ## References
 
 - [CloudNativePG Documentation](https://cloudnative-pg.io/documentation/)
+- [CloudNativePG Barman Cloud Plugin](https://cloudnative-pg.io/plugin-barman-cloud/docs/intro/)
 - [Rook/Ceph Object Storage](https://rook.io/docs/rook/latest/Storage-Configuration/Object-Storage-RGW/object-storage/)

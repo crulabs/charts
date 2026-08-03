@@ -13,6 +13,10 @@ spec:
   postgresUID: {{ if eq .Values.type "timescaledb" }}1000{{ else }}26{{ end }}
   postgresGID: {{ if eq .Values.type "timescaledb" }}1000{{ else }}26{{ end }}
   bootstrap:
+    {{- if .Values.recovery.enabled }}
+    recovery:
+      source: origin
+    {{- else }}
     initdb:
       database: {{ .Values.initdb.database | default .Release.Name }}
       owner: {{ .Values.initdb.owner }}
@@ -33,7 +37,7 @@ spec:
       postInitApplicationSQL:
       {{ toYaml $sql | nindent 8 }}
       {{- end }}
-
+    {{- end }}
   {{- if .Values.enableSuperuserAccess }}
   enableSuperuserAccess: true 
   superuserSecret:
@@ -50,40 +54,11 @@ spec:
   {{- end }}
 
   {{- if .Values.backup.enabled }}
-  {{- $bucketName := "" }}
-  {{- $bucketHost := "" }}
-  {{- $secretName := .Values.backup.secret.name | default .Values.backup.obc.name }}
-
-  {{- if .Values.backup.obc.name }}
-    {{- $bucketConfig := (lookup "v1" "ConfigMap" .Release.Namespace .Values.backup.obc.name) }}
-    {{- if $bucketConfig.data }}
-      {{- $bucketName = printf "s3://%s/" (get $bucketConfig.data "BUCKET_NAME") }}
-      {{- $bucketHost = printf "http://%s:%s" (get $bucketConfig.data "BUCKET_HOST") (get $bucketConfig.data "BUCKET_PORT") }}
-    {{- end }}
-  {{- else }}
-    {{- $bucketName = .Values.backup.destinationPath }}
-    {{- $bucketHost = .Values.backup.endpointURL }}
-  {{- end }}
-
-  {{- if and $bucketName $bucketHost }}
-  backup:
-    barmanObjectStore:
-      destinationPath: {{ $bucketName }}
-      endpointURL: {{ $bucketHost }}
-      s3Credentials:
-        accessKeyId:
-          name: {{ $secretName }}
-          key: AWS_ACCESS_KEY_ID
-        secretAccessKey:
-          name: {{ $secretName }}
-          key: AWS_SECRET_ACCESS_KEY
-      wal:
-        compression: gzip
-      data:
-        compression: gzip
-        jobs: 2
-    retentionPolicy: {{ .Values.backup.retentionPolicy }}
-  {{- end }}
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: {{ .Release.Name }}-backup
   {{- end }}
 
   affinity:
@@ -95,6 +70,13 @@ spec:
     shared_preload_libraries:
       - timescaledb
   {{- end }}
-
-  monitoring:
-    enablePodMonitor: {{ .Values.monitoring.enablePodMonitor }}
+  
+  {{ if .Values.recovery.enabled }}
+  externalClusters:
+    - name: origin
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: {{ .Release.Name }}-recovery
+          serverName: {{ .Values.recovery.serverName }}
+  {{- end }}

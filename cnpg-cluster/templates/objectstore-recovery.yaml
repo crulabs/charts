@@ -1,0 +1,28 @@
+{{- if .Values.recovery.enabled }}
+{{- $secretName := .Values.recovery.secret.name | default .Values.recovery.obc.name }}
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ .Release.Name }}-recovery
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade,pre-rollback
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  configuration:
+    destinationPath: s3://{{ .Values.recovery.obc.name }}
+    endpointURL: {{ .Values.recovery.obc.endpoint }}
+    s3Credentials:
+      accessKeyId:
+        name: {{ $secretName }}
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: {{ $secretName }}
+        key: AWS_SECRET_ACCESS_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+      jobs: 2
+{{- end }}

@@ -1,9 +1,14 @@
 {{- if eq .Values.type "timescaledb" }}
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: ImageCatalog
 metadata:
   name: timescaledb
   namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade,pre-rollback
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation
 spec:
   images:
     - major: 16

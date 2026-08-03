@@ -24,7 +24,7 @@ spec:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
   ref:
-    tag: "1.x.x" # use the latest 1.x.x version of the chart
+    tag: "3.x.x" # use the latest 3.x.x version of the chart
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease

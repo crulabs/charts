@@ -38,19 +38,30 @@ resources:
 
 backup:
   enabled: false
+  suspend: false
+  immediate: false
   obc:
     name: ""
-    storageClassName: rook-ceph-bucket
-  destinationPath: ""
-  endpointURL: ""
+    endpoint: http://rook-ceph-rgw-objectstore.rook-ceph.svc:80
   secret:
     name: ""
   schedule: "0 0 0 * * *" # daily at midnight
   retentionPolicy: "30d"
+
+recovery:
+  enabled: false
+  serverName: ""
+  obc:
+    name: ""
+    endpoint: http://rook-ceph-rgw-objectstore.rook-ceph.svc:80
+  secret:
+    name: ""
 
 affinity:
   enablePodAntiAffinity: true
   topologyKey: kubernetes.io/hostname
 
 monitoring:
-  enablePodMonitor: true
+  enabled: true
+  podMonitor:
+    enabled: true

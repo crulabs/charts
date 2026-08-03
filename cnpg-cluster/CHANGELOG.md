@@ -1,4 +1,55 @@
 # Changelog
+
+## [3.0.0]
+
+### Breaking Changes
+
+- **Plugin-based Backup Architecture:** Migrated backups from native `spec.backup.barmanObjectStore` configuration to the `barman-cloud.cloudnative-pg.io` plugin architecture.
+- **Plugin-based Backup Architecture:** Migrated backups from native `spec.backup.barmanObjectStore` configuration to the `barman-cloud.cloudnative-pg.io` plugin architecture.
+- **Monitoring structure updated:** `monitoring.enablePodMonitor` has been replaced with a nested structure (`monitoring.enabled` and `monitoring.podMonitor.enabled`). Update your values accordingly.
+- **`backup` values cleaned up:** Removed `backup.endpointURL`, `backup.destinationPath`, and `backup.obc.storageClassName` from `values.yaml`.
+- **ScheduledBackup ownership & method:** Changed `backupOwnerReference` from `cluster` to `self` and updated backup execution to use the Barman plugin method.
+
+### Changes
+
+- **Added Cluster Recovery Support:** Introduced `recovery` values section to support bootstrapping clusters from external backups (`spec.bootstrap.recovery` and `spec.externalClusters`).
+- **Helm Hooks for ImageCatalogs:** Added `pre-install`, `pre-upgrade`, and `pre-rollback` Helm hooks (weight `-5`) to `ImageCatalog` manifests to eliminate deployment race conditions with the cluster resource.
+- **Configurable Scheduled Backups:** Added `backup.immediate` and `backup.suspend` parameters to control scheduled backup behaviors.
+- **Added `backup.obc.endpoint`:** Configured explicit S3 endpoint path for OBC integration.
+
+### Migration
+
+```yaml
+# Before (v2.x)
+backup:
+  enabled: true
+  endpointURL: "http://..."
+  destinationPath: "s3://..."
+
+monitoring:
+  enablePodMonitor: true
+
+# After (v3.0.0)
+backup:
+  enabled: true
+  immediate: false
+  suspend: false
+  obc:
+    name: "<obc-name>"
+    endpoint: "[http://rook-ceph-rgw-objectstore.rook-ceph.svc:80](http://rook-ceph-rgw-objectstore.rook-ceph.svc:80)"
+
+
+# New: Recovery from object Store
+recovery:
+  enabled: false
+  serverName: <old-cluster-name>
+
+monitoring:
+  enabled: true
+  podMonitor:
+    enabled: true
+```
+
 ## [2.0.1]
 - **fix:**: typo in imagecatalog
 
