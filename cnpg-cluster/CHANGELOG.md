@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.0.1]
+
+- **fix**: Fixed Flux deployment issue by removing Helm hook annotations from `ImageCatalog` and `ObjectStore` resources.
+
 ## [3.0.0]
 
 ### Breaking Changes

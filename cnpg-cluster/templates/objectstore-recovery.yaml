@@ -5,10 +5,6 @@ kind: ObjectStore
 metadata:
   name: {{ .Release.Name }}-recovery
   namespace: {{ .Release.Namespace }}
-  annotations:
-    helm.sh/hook: pre-install,pre-upgrade,pre-rollback
-    helm.sh/hook-weight: "-5"
-    helm.sh/hook-delete-policy: before-hook-creation
 spec:
   configuration:
     destinationPath: s3://{{ .Values.recovery.obc.name }}
