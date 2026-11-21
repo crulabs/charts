@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0]
+
+- **security**: Updated PostgreSQL images to the latest minor releases (16.16, 17.12, 18.7) to pick up CVE fixes.
+- **security**: Switched the PostgreSQL `ImageCatalog` from the legacy `system` images (e.g. `18.6`, Debian bullseye, no longer rebuilt) to the `standard` images on Debian trixie (e.g. `18.7-standard-trixie`). Backups go through the Barman Cloud plugin, so the barman tools bundled in the `system` images are no longer needed. The OS change brings a new glibc; clusters with the chart's default `C` locale are not affected. If you set a libc locale such as `en_US.UTF-8` yourself, reindex text indexes after the upgrade.
+- **security**: Updated TimescaleDB images to `pg16.16-ts2.32.1` and `pg18.7-ts2.32.1`. After the rollout, run `ALTER EXTENSION timescaledb UPDATE;` in every database that uses TimescaleDB.
+- **security**: Updated the Helm test image from `alpine:3.17` (EOL) to `alpine:3.24.4`.
+
 ## [3.0.1]
 
 - **fix**: Fixed Flux deployment issue by removing Helm hook annotations from `ImageCatalog` and `ObjectStore` resources.
