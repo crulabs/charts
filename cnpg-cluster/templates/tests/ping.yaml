@@ -18,7 +18,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: alpine
-          image: alpine:3.17
+          image: alpine:3.24.4
           command: [ 'sh' ]
           env:
             - name: PGUSER

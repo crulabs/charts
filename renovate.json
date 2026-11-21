@@ -5,19 +5,24 @@
     "config:recommended"
   ],
 
+  "ignorePaths": [
+    "**/node_modules/**"
+  ],
+
   "helm-values": {
-    "fileMatch": ["(^|/).*\\.ya?ml$"]
+    "managerFilePatterns": ["/(^|/).*\\.ya?ml$/"]
   },
 
   "kubernetes": {
-    "fileMatch": ["(^|/).*\\.ya?ml$"]
+    "managerFilePatterns": ["/(^|/).*\\.ya?ml$/"]
   },
 
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "cnpg-cluster/templates/imagecatalog.*\\.ya?ml$"
+      "description": "CloudNativePG PostgreSQL images in the ImageCatalog (e.g. 18.7-standard-trixie)",
+      "managerFilePatterns": [
+        "/cnpg-cluster/templates/imagecatalog.*\\.ya?ml$/"
       ],
       "matchStrings": [
         "image:\\s*(?<depName>ghcr\\.io/cloudnative-pg/postgresql):(?<currentValue>[^\\s]+)"
@@ -26,13 +31,24 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "cnpg-cluster/templates/imagecatalog.*\\.ya?ml$"
+      "description": "TimescaleDB HA images in the ImageCatalog (e.g. pg18.7-ts2.32.1)",
+      "managerFilePatterns": [
+        "/cnpg-cluster/templates/imagecatalog.*\\.ya?ml$/"
       ],
       "matchStrings": [
         "image:\\s*(?<depName>timescale/timescaledb-ha):(?<currentValue>[^\\s]+)"
       ],
-      "datasourceTemplate": "docker"
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "regex:^pg(?<major>\\d+)\\.(?<minor>\\d+)-ts(?<patch>\\d+)\\.(?<build>\\d+)\\.(?<revision>\\d+)$"
+    }
+  ],
+
+  "packageRules": [
+    {
+      "description": "No major updates for images in the Helm charts (e.g. PostgreSQL 16 -> 18). Major upgrades are done by hand.",
+      "matchManagers": ["custom.regex", "kubernetes", "helm-values"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }

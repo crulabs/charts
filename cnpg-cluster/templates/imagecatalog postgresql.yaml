@@ -8,9 +8,9 @@ metadata:
 spec:
   images:
     - major: 16
-      image: ghcr.io/cloudnative-pg/postgresql:16.15
+      image: ghcr.io/cloudnative-pg/postgresql:16.16-standard-trixie
     - major: 17
-      image: ghcr.io/cloudnative-pg/postgresql:17.11
+      image: ghcr.io/cloudnative-pg/postgresql:17.12-standard-trixie
     - major: 18
-      image: ghcr.io/cloudnative-pg/postgresql:18.6
+      image: ghcr.io/cloudnative-pg/postgresql:18.7-standard-trixie
 {{ end }}
