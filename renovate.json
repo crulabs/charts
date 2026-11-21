@@ -5,6 +5,10 @@
     "config:recommended"
   ],
 
+  "ignorePaths": [
+    "**/node_modules/**"
+  ],
+
   "helm-values": {
     "managerFilePatterns": ["/(^|/).*\\.ya?ml$/"]
   },
