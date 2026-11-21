@@ -34,7 +34,8 @@
       "matchStrings": [
         "image:\\s*(?<depName>timescale/timescaledb-ha):(?<currentValue>[^\\s]+)"
       ],
-      "datasourceTemplate": "docker"
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "regex:^pg(?<major>\\d+)\\.(?<minor>\\d+)-ts(?<patch>\\d+)\\.(?<build>\\d+)\\.(?<revision>\\d+)$"
     }
   ]
 }
