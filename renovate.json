@@ -37,5 +37,14 @@
       "datasourceTemplate": "docker",
       "versioningTemplate": "regex:^pg(?<major>\\d+)\\.(?<minor>\\d+)-ts(?<patch>\\d+)\\.(?<build>\\d+)\\.(?<revision>\\d+)$"
     }
+  ],
+
+  "packageRules": [
+    {
+      "description": "No major updates for images in the Helm charts (e.g. PostgreSQL 16 -> 18). Major upgrades are done by hand.",
+      "matchManagers": ["custom.regex", "kubernetes", "helm-values"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
   ]
 }
