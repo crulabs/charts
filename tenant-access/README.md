@@ -124,6 +124,9 @@ kubectl get secret <username>-kubeconfig -n tenant-access \
 Remove the user from `users` in the values and commit. Flux reconciles the chart and removes the ServiceAccount, Token Secret, kubeconfig Secret and all RoleBinding subjects for that user.
 
 ## Changelog
+### 0.1.5
+- **security:** updated kubeconfig generator image to `alpine/k8s:1.37.2`
+
 ### 0.1.4
 - configure API server in values.yaml via `apiServer`
 
