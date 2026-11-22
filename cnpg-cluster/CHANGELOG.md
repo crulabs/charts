@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.1.2]
+
+- **fix**: Helm test pod is now compliant with the Pod Security `restricted` level. It uses `ghcr.io/cloudnative-pg/postgresql:18.7-minimal-trixie` (ships `psql`, runs as non-root) instead of installing the client in `alpine` at runtime.
+
 ## [3.1.1]
 
 - **security**: Pinned TimescaleDB images to their build tags (`pg16.16-ts2.32.1-r606.1`, `pg18.7-ts2.32.1-r606.1`). Timescale publishes OS-level CVE fixes as new builds under the same version tag. With build tags, Renovate opens a PR for every new build and nodes pull the new image.
