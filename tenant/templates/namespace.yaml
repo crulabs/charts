@@ -5,3 +5,8 @@ metadata:
   name: {{ .Values.namespace }}
   labels:
     toolkit.fluxcd.io/tenant: {{ .Values.team }}
+    {{- range $mode, $level := .Values.podSecurity }}
+    {{- if $level }}
+    pod-security.kubernetes.io/{{ $mode }}: {{ $level | quote }}
+    {{- end }}
+    {{- end }}
