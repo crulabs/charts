@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.1.1]
+
+- **security**: Pinned TimescaleDB images to their build tags (`pg16.16-ts2.32.1-r606.1`, `pg18.7-ts2.32.1-r606.1`). Timescale publishes OS-level CVE fixes as new builds under the same version tag. With build tags, Renovate opens a PR for every new build and nodes pull the new image.
+
 ## [3.1.0]
 
 - **security**: Updated PostgreSQL images to the latest minor releases (16.16, 17.12, 18.7) to pick up CVE fixes.
