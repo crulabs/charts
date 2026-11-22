@@ -31,7 +31,7 @@
     },
     {
       "customType": "regex",
-      "description": "TimescaleDB HA images in the ImageCatalog (e.g. pg18.7-ts2.32.1)",
+      "description": "TimescaleDB HA images in the ImageCatalog (e.g. pg18.7-ts2.32.1-r606.1)",
       "managerFilePatterns": [
         "/cnpg-cluster/templates/imagecatalog.*\\.ya?ml$/"
       ],
@@ -39,7 +39,7 @@
         "image:\\s*(?<depName>timescale/timescaledb-ha):(?<currentValue>[^\\s]+)"
       ],
       "datasourceTemplate": "docker",
-      "versioningTemplate": "regex:^pg(?<major>\\d+)\\.(?<minor>\\d+)-ts(?<patch>\\d+)\\.(?<build>\\d+)\\.(?<revision>\\d+)$"
+      "versioningTemplate": "regex:^pg(?<major>\\d+)\\.(?<minor>\\d+)-ts(?<compatibility>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)-r(?<revision>\\d+)\\.\\d+$"
     }
   ],
 
