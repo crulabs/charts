@@ -93,6 +93,9 @@ Adding a new tenant means creating a folder with a HelmRelease, committing it â€
 | `ResourceQuota.limits.cpu` | CPU limits quota | `"8"` |
 | `ResourceQuota.limits.memory` | Memory limits quota | `"16Gi"` |
 | `ResourceQuota.pods` | Max pods | `"20"` |
+| `podSecurity.enforce` | Pod Security level that is enforced (empty = not set) | `baseline` |
+| `podSecurity.warn` | Pod Security level that triggers warnings (empty = not set) | `restricted` |
+| `podSecurity.audit` | Pod Security level that is written to the audit log (empty = not set) | `restricted` |
 | `networkPolicy.endpointSelector` | Label selector for affected pods (empty = all pods) | `{}` |
 | `networkPolicy.ingress` | List of ingress rules (fromNamespace labels) | `[]` |
 | `networkPolicy.egress` | List of egress rules (toNamespace labels) | `[]` |
@@ -104,6 +107,9 @@ Adding a new tenant means creating a folder with a HelmRelease, committing it â€
 
 
 ## Changelog
+### 0.5.0
+- **feat:** Pod Security Admission labels on the tenant namespace via `podSecurity` (default: enforce `baseline`, warn/audit `restricted`). Running pods are not affected. New pods that violate `baseline` are rejected.
+
 ### 0.4.0
 - **feat:** added decryption block
 ### 0.3.1
