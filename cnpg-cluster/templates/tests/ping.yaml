@@ -16,25 +16,35 @@ spec:
         app.kubernetes.io/component: database-ping-test
     spec:
       restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 26
+        runAsGroup: 26
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-        - name: alpine
-          image: alpine:3.24.4
-          command: [ 'sh' ]
+        - name: psql
+          image: ghcr.io/cloudnative-pg/postgresql:18.7-minimal-trixie
+          command: [ 'psql', '-c', 'SELECT 1' ]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ "ALL" ]
           env:
+            - name: PGHOST
+              value: {{ .Release.Name }}-rw.{{ .Release.Namespace }}.svc.cluster.local
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: {{ .Values.initdb.database | default .Release.Name }}
             - name: PGUSER
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.initdb.secret.name }}
                   key: username
-            - name: PGPASS
+            - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.initdb.secret.name }}
                   key: password
-            - name: PGDBNAME
-              value: {{ .Values.initdb.database | default .Release.Name }}
-          args:
-            - "-c"
-            - >-
-              apk add postgresql-client &&
-              psql "postgresql://$PGUSER:$PGPASS@{{ .Release.Name }}-rw.{{ .Release.Namespace }}.svc.cluster.local:5432/${PGDBNAME:-$PGUSER}" -c 'SELECT 1'
