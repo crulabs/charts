@@ -17,11 +17,42 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u $ --password-stdin
 
-      - name: Get chart name from tag
+      # Tag format: <chart>-<semver>, e.g. cnpg-cluster-3.1.3
+      # The version comes from the tag, so Chart.yaml cannot drift from it.
+      - name: Get chart name and version from tag
         id: chart
-        run: echo "name=$(echo ${{ github.ref_name }} | sed 's/-[0-9].*//')" >> $GITHUB_OUTPUT
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "$TAG" =~ ^(.+)-([0-9]+\.[0-9]+\.[0-9]+([-+].*)?)$ ]]; then
+            echo "::error::tag '$TAG' does not match <chart>-<semver>"
+            exit 1
+          fi
+          name="${BASH_REMATCH[1]}"
+          version="${BASH_REMATCH[2]}"
+          if [[ ! -f "$name/Chart.yaml" ]]; then
+            echo "::error::no chart directory '$name' for tag '$TAG'"
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Published versions are immutable: consumers pin the tag, so pushing the
+      # same version again silently rolls out new content.
+      - name: Refuse to overwrite a published version
+        env:
+          NAME: ${{ steps.chart.outputs.name }}
+          VERSION: ${{ steps.chart.outputs.version }}
+        run: |
+          if helm show chart "oci://ghcr.io/crulabs/charts/$NAME" --version "$VERSION" >/dev/null 2>&1; then
+            echo "::error::$NAME $VERSION is already published - create a new tag"
+            exit 1
+          fi
 
       - name: Package and Push
+        env:
+          NAME: ${{ steps.chart.outputs.name }}
+          VERSION: ${{ steps.chart.outputs.version }}
         run: |
-          helm package ${{ steps.chart.outputs.name }}/
-          helm push ${{ steps.chart.outputs.name }}-*.tgz oci://ghcr.io/crulabs/charts
+          helm package "$NAME/" --version "$VERSION"
+          helm push "$NAME-$VERSION.tgz" oci://ghcr.io/crulabs/charts
