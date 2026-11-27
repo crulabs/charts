@@ -1,58 +1,70 @@
+name: release
+
+# A chart is released when the version in its Chart.yaml has not been released
+# yet: bump `version` in <chart>/Chart.yaml and merge to main. The workflow
+# packages and pushes the chart and creates the git tag <chart>-<version>.
 on:
   push:
-    tags:
-      - 'tenant-*'
-      - 'tenant-access-*'
-      - 'cnpg-cluster-*'
+    branches:
+      - main
+    paths:
+      - '*/Chart.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       packages: write
-      contents: read
+      contents: write
+    env:
+      REGISTRY: oci://ghcr.io/crulabs/charts
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u $ --password-stdin
-
-      # Tag format: <chart>-<semver>, e.g. cnpg-cluster-3.1.3
-      # The version comes from the tag, so Chart.yaml cannot drift from it.
-      - name: Get chart name and version from tag
-        id: chart
         env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          if [[ ! "$TAG" =~ ^(.+)-([0-9]+\.[0-9]+\.[0-9]+([-+].*)?)$ ]]; then
-            echo "::error::tag '$TAG' does not match <chart>-<semver>"
-            exit 1
-          fi
-          name="${BASH_REMATCH[1]}"
-          version="${BASH_REMATCH[2]}"
-          if [[ ! -f "$name/Chart.yaml" ]]; then
-            echo "::error::no chart directory '$name' for tag '$TAG'"
-            exit 1
-          fi
-          echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$TOKEN" | helm registry login ghcr.io -u "$ACTOR" --password-stdin
 
-      # Published versions are immutable: consumers pin the tag, so pushing the
-      # same version again silently rolls out new content.
-      - name: Refuse to overwrite a published version
-        env:
-          NAME: ${{ steps.chart.outputs.name }}
-          VERSION: ${{ steps.chart.outputs.version }}
+      - name: Release charts with new versions
         run: |
-          if helm show chart "oci://ghcr.io/crulabs/charts/$NAME" --version "$VERSION" >/dev/null 2>&1; then
-            echo "::error::$NAME $VERSION is already published - create a new tag"
-            exit 1
-          fi
+          set -euo pipefail
+          released=0
+          for chart_yaml in */Chart.yaml; do
+            dir="${chart_yaml%/Chart.yaml}"
+            name="$(yq -r '.name' "$chart_yaml")"
+            version="$(yq -r '.version' "$chart_yaml")"
+            tag="$name-$version"
 
-      - name: Package and Push
-        env:
-          NAME: ${{ steps.chart.outputs.name }}
-          VERSION: ${{ steps.chart.outputs.version }}
-        run: |
-          helm package "$NAME/" --version "$VERSION"
-          helm push "$NAME-$VERSION.tgz" oci://ghcr.io/crulabs/charts
+            # Released versions are immutable: consumers pin the version, so
+            # pushing it again would silently roll out new content.
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "$tag: already released, skipping"
+              continue
+            fi
+            if out="$(helm show chart "$REGISTRY/$name" --version "$version" 2>&1)"; then
+              echo "::warning::$tag is in the registry but has no git tag, skipping. Push the tag by hand if that is expected."
+              continue
+            elif ! grep -qiE 'not found|denied' <<<"$out"; then
+              echo "::error::$tag: could not check the registry: $out"
+              exit 1
+            fi
+
+            echo "::group::Release $tag"
+            helm lint "$dir"
+            helm package "$dir"
+            helm push "$name-$version.tgz" "$REGISTRY"
+            git tag "$tag" "$GITHUB_SHA"
+            git push origin "refs/tags/$tag"
+            echo "::endgroup::"
+            released=$((released + 1))
+          done
+          echo "Released $released chart(s)"
