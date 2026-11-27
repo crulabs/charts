@@ -48,6 +48,7 @@ jobs:
             awk -v heading="## [$2]" '
               $0 == heading { found = 1; next }
               found && /^## / { exit }
+              /^<!-- generated:(start|end) -->$/ { next }
               found { lines[++n] = $0 }
               END {
                 first = 1; while (first <= n && lines[first] ~ /^[[:space:]]*$/) first++

@@ -1,0 +1,10 @@
+# chart-testing config, see https://github.com/helm/chart-testing
+target-branch: main
+remote: origin
+# The charts live in the repository root (cnpg-cluster/, tenant/, ...).
+chart-dirs:
+  - .
+excluded-charts: []
+lint-conf: .github/ct/lintconf.yaml
+validate-maintainers: false
+check-version-increment: true
