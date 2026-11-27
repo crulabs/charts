@@ -68,12 +68,12 @@ metadata:
   namespace: <namespace>
 spec:
   interval: 24h
-  url: oci://ghcr.io/crulabs/helm/cnpg-cluster
+  url: oci://ghcr.io/crulabs/charts/cnpg-cluster
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
   ref:
-    tag: "3.0.0"
+    tag: "3.1.4"
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease

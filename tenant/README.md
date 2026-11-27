@@ -32,12 +32,12 @@ metadata:
   namespace: flux-system
 spec:
   interval: 24h
-  url: oci://ghcr.io/crulabs/helm/tenant
+  url: oci://ghcr.io/crulabs/charts/tenant
   layerSelector:
     mediaType: "application/vnd.cncf.helm.chart.content.v1.tar+gzip"
     operation: copy
   ref:
-    tag: "0.3.0"
+    tag: "0.5.0"
 ```
 
 ```yaml
