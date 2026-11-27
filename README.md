@@ -22,10 +22,12 @@ A chart is released when its `version` in `Chart.yaml` changes on `main`:
 
 1. Make your changes to the chart.
 2. Bump `version` in `<chart>/Chart.yaml` ([SemVer](https://semver.org): patch for fixes and image updates, minor for new features, major for breaking changes).
-3. Add an entry to the chart's changelog.
+3. Add a section `## [<version>]` to `<chart>/CHANGELOG.md`. It becomes the release notes; without it the release fails.
 4. Merge to `main`.
 
-The [release workflow](.github/workflows/release.yaml) then lints, packages and pushes every chart whose version is not released yet and creates the git tag `<chart>-<version>`. Do not create release tags by hand.
+The [release workflow](.github/workflows/release.yaml) then lints, packages and pushes every chart whose version is not released yet, creates the git tag `<chart>-<version>` and a GitHub release with the changelog section as release notes. Do not create release tags or releases by hand.
+
+Renovate in consuming repositories finds this repository via `home`/`sources` in `Chart.yaml` and shows the release notes in its update PRs.
 
 Released versions are never overwritten. A version that already has a git tag is skipped, so every change needs a new version.
 
