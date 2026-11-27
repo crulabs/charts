@@ -1,10 +1,12 @@
 # Changelog
 
+## [3.1.5]
+
+- **security**: Updated TimescaleDB images to `pg16.16-ts2.32.1-r617.1` and `pg18.7-ts2.32.1-r617.1`.
+
 ## [3.1.4]
 
 - **security**: Updated TimescaleDB images to `pg16.16-ts2.32.1-r607.1` and `pg18.7-ts2.32.1-r607.1`.
-
-> 3.1.3 was tagged but never published.
 
 ## [3.1.2]
 
