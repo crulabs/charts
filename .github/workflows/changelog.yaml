@@ -53,7 +53,9 @@ jobs:
               exit 1
             fi
 
-            python3 .github/scripts/changelog.py "$dir" "$version"
+            # Include origin/<base>: changes merged there after this branch was
+            # created are released together with this pull request.
+            python3 .github/scripts/changelog.py "$dir" "$version" "origin/$BASE_REF"
             updated+=("$name $version")
           done
           printf '%s\n' "${updated[@]}"

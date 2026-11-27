@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Generate the changelog section of a chart release from conventional commits.
 
-Usage: changelog.py <chart-dir> <version>
+Usage: changelog.py <chart-dir> <version> [<ref>...]
 
 Collects the non-merge commits since the previous release tag of the chart
 (<chart>-<x.y.z>) that touch <chart-dir>, groups them by conventional commit
 type and writes them into the section "## [<version>]" of
 <chart-dir>/CHANGELOG.md, between the markers below. Text outside the markers
 is kept, so manual notes in the section survive a regeneration.
+
+Commits are taken from HEAD and from every additional <ref>. In a pull
+request, pass the base branch (e.g. origin/main): changes merged there after
+the branch was created are part of the release as well.
 """
 from __future__ import annotations
 
@@ -62,9 +66,9 @@ def previous_tag(name: str, version: str) -> str | None:
     return f"{name}-{max(older, key=version_key)}" if older else None
 
 
-def commits(chart_dir: Path, name: str, since: str | None) -> list[str]:
-    rev = f"{since}..HEAD" if since else "HEAD"
-    subjects = git("log", "--no-merges", "--format=%s", rev, "--", str(chart_dir)).splitlines()
+def commits(chart_dir: Path, name: str, since: str | None, refs: list[str]) -> list[str]:
+    revs = ["HEAD", *refs] + ([f"^{since}"] if since else [])
+    subjects = git("log", "--no-merges", "--format=%s", *revs, "--", str(chart_dir)).splitlines()
     # Skip the release bump itself and changelog commits of this workflow.
     skip = re.compile(rf"^(chore|docs)(\({re.escape(name)}\))?: (release|update changelog)\b")
     return [s for s in subjects if s.strip() and not skip.match(s)]
@@ -133,12 +137,12 @@ def write(changelog: Path, version: str, block: str) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) != 3:
+    if len(sys.argv) < 3:
         sys.exit(__doc__)
-    chart_dir, version = Path(sys.argv[1]), sys.argv[2]
+    chart_dir, version, refs = Path(sys.argv[1]), sys.argv[2], sys.argv[3:]
     name = chart_name(chart_dir)
     since = previous_tag(name, version)
-    subjects = commits(chart_dir, name, since)
+    subjects = commits(chart_dir, name, since, refs)
     print(f"{name} {version}: {len(subjects)} commit(s) since {since or 'the beginning'}", file=sys.stderr)
     write(chart_dir / "CHANGELOG.md", version, render(subjects, name))
 
