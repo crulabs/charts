@@ -1,0 +1,35 @@
+name: lint
+
+# Lints the charts changed in a pull request with chart-testing (helm lint,
+# yamllint, Chart.yaml schema) and checks that their version was bumped.
+# Renovate pull requests update images without bumping the chart version, so
+# the version check is skipped for bots.
+on:
+  pull_request:
+
+concurrency:
+  group: lint-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: azure/setup-helm@v5.1.0
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.x'
+
+      - uses: helm/chart-testing-action@v2.9.0
+
+      - name: Lint changed charts
+        env:
+          CHECK_VERSION: ${{ !endsWith(github.event.pull_request.user.login, '[bot]') }}
+        run: ct lint --config .github/ct/ct.yaml --check-version-increment="$CHECK_VERSION"
