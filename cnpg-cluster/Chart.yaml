@@ -3,6 +3,9 @@ name: cnpg-cluster
 description: A Helm chart for deploying CloudNative-PG PostgreSQL clusters
 type: application
 version: 3.1.4
+home: https://github.com/crulabs/charts/tree/main/cnpg-cluster
+sources:
+  - https://github.com/crulabs/charts
 keywords:
   - postgresql
   - database
