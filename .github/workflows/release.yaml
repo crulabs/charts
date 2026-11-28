@@ -1,14 +1,17 @@
 name: release
 
-# A chart is released when the version in its Chart.yaml has not been released
-# yet: bump `version` in <chart>/Chart.yaml and merge to main. The workflow
-# packages and pushes the chart and creates the git tag <chart>-<version>.
+# Runs on every push to main:
+# 1. release: a chart is released when the version in its Chart.yaml has not
+#    been released yet. It is packaged and pushed, tagged as <chart>-<version>
+#    and gets a GitHub release.
+# 2. release-pr: for every chart with unreleased changes, a pull request
+#    release/<chart> bumps the version and writes the changelog section. It is
+#    rebuilt on every push, so it always shows what the next release contains.
+#    Merging it releases the chart (step 1).
 on:
   push:
     branches:
       - main
-    paths:
-      - '*/Chart.yaml'
   workflow_dispatch:
 
 concurrency:
@@ -107,3 +110,85 @@ jobs:
             released=$((released + 1))
           done
           echo "Released $released chart(s)"
+
+  release-pr:
+    # After the release job, so a chart that was just released starts from its
+    # new tag.
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      # Pushes and pull requests made with GITHUB_TOKEN do not trigger other
+      # workflows, so lint would not run on the release pull requests. Set the
+      # secret RELEASE_TOKEN (GitHub App or fine-grained token with contents and
+      # pull requests write access) to get the checks.
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Update release pull requests
+        env:
+          BODY_DIR: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for chart_yaml in */Chart.yaml; do
+            dir="${chart_yaml%/Chart.yaml}"
+            name="$(yq -r '.name' "$chart_yaml")"
+            branch="release/$name"
+            body="$BODY_DIR/$name.md"
+            echo "::group::$name"
+
+            remote=()
+            if git rev-parse -q --verify "refs/remotes/origin/$branch" >/dev/null; then
+              remote=("origin/$branch")
+            fi
+            pr="$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
+
+            # The release branch is always rebuilt from main. Manual edits on it
+            # (higher version, changelog notes) are carried over by the script.
+            git checkout -q -f -B "$branch" origin/main
+            status=0
+            version="$(python3 .github/scripts/release_pr.py "$dir" "$body" "${remote[@]}")" || status=$?
+            if [[ $status -eq 3 ]]; then
+              echo "::endgroup::"; continue
+            elif [[ $status -ne 0 ]]; then
+              exit "$status"
+            fi
+
+            if [[ -z "$version" ]]; then
+              if [[ -n "$pr" ]]; then
+                gh pr close "$pr" --delete-branch --comment "Nothing to release anymore."
+              elif [[ ${#remote[@]} -gt 0 ]]; then
+                git push origin --delete "$branch"  # left over from a merged release
+              fi
+              echo "::endgroup::"; continue
+            fi
+
+            title="chore($name): release $version"
+            git add -- "$dir/Chart.yaml" "$dir/CHANGELOG.md"
+            if [[ ${#remote[@]} -gt 0 ]] && git diff --cached --quiet "${remote[0]}" \
+              && [[ "$(git log -1 --format=%P "${remote[0]}")" == "$(git rev-parse origin/main)" ]]; then
+              echo "$branch is up to date"
+            else
+              git commit -q -m "$title"
+              # The lease fails if someone pushed to the branch since the fetch;
+              # the next run picks that up.
+              git push -q --force-with-lease="$branch" origin "$branch"
+            fi
+
+            if [[ -n "$pr" ]]; then
+              gh pr edit "$pr" --title "$title" --body-file "$body"
+            else
+              gh pr create --base main --head "$branch" --title "$title" --body-file "$body"
+            fi
+            echo "::endgroup::"
+          done

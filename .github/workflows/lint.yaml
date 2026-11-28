@@ -2,7 +2,7 @@ name: lint
 
 # Lints the charts changed in a pull request with chart-testing (helm lint,
 # yamllint, Chart.yaml schema). A version bump is not required: changes can be
-# merged without one and are released with the next bump (see release.yaml).
+# merged without one and are released by the release pull request (see release.yaml).
 on:
   pull_request:
 

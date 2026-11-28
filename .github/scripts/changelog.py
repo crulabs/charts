@@ -9,9 +9,8 @@ type and writes them into the section "## [<version>]" of
 <chart-dir>/CHANGELOG.md, between the markers below. Text outside the markers
 is kept, so manual notes in the section survive a regeneration.
 
-Commits are taken from HEAD and from every additional <ref>. In a pull
-request, pass the base branch (e.g. origin/main): changes merged there after
-the branch was created are part of the release as well.
+Commits are taken from HEAD and from every additional <ref>. The release pull
+requests use this module through release_pr.py.
 """
 from __future__ import annotations
 
