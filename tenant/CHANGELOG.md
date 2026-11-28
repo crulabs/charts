@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.1]
+
+<!-- generated:start -->
+### Documentation
+
+- move tenant and tenant-access changelogs to CHANGELOG.md
+- fix registry path and document release process
+
+### Chores
+
+- add home and sources to chart metadata
+<!-- generated:end -->
+
 ## [0.5.0]
 
 - **feat:** Pod Security Admission labels on the tenant namespace via `podSecurity` (default: enforce `baseline`, warn/audit `restricted`). Running pods are not affected. New pods that violate `baseline` are rejected.
