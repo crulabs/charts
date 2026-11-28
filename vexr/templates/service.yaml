@@ -33,6 +33,7 @@ spec:
   endpoints:
     - port: metrics
       path: /metrics
+      honorLabels: {{ .Values.serviceMonitor.honorLabels }}
       interval: {{ .Values.serviceMonitor.interval }}
       scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
       {{- with .Values.serviceMonitor.metricRelabelings }}

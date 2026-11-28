@@ -1,6 +1,6 @@
 # vexr
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
+![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
 
 This Helm chart deploys [vexr](https://github.com/sfotiadis/vexr), a controller that prioritizes the
 VulnerabilityReports of the Trivy Operator into P1 (act now) to P4 (backlog) using CISA KEV, EPSS,
@@ -108,6 +108,7 @@ spec:
 | `priorityClassName`, `nodeSelector`, `tolerations`, `affinity` | Scheduling | empty |
 | `service.port` | Metrics service port | `8080` |
 | `serviceMonitor.enabled` | Create a ServiceMonitor | `true` |
+| `serviceMonitor.honorLabels` | Keep the `namespace` and `container` labels of the metrics (the affected workload) instead of the scrape target's | `true` |
 | `serviceMonitor.interval`, `serviceMonitor.scrapeTimeout` | Scrape settings | `60s`, `30s` |
 | `serviceMonitor.labels`, `serviceMonitor.metricRelabelings` | Additional labels, metric relabelings | empty |
 | `prometheusRule.enabled` | Create a PrometheusRule | `true` |

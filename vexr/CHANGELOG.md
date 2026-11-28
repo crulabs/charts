@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.1]
+
+- **fix:** the ServiceMonitor sets `honorLabels: true` (`serviceMonitor.honorLabels`). Before, Prometheus
+  replaced the `namespace` and `container` labels of the findings with those of vexr itself
+  (`exported_namespace`), so alerts showed the wrong namespace and could not be grouped by it.
+
 ## [0.1.0]
 
 - Initial release

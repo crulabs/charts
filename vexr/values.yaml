@@ -116,6 +116,10 @@ service:
 
 serviceMonitor:
   enabled: true
+  # vexr metrics carry the namespace and container of the affected workloads. Without
+  # honorLabels, Prometheus renames them to exported_namespace/exported_container and sets
+  # namespace to the namespace of vexr itself.
+  honorLabels: true
   interval: 60s
   scrapeTimeout: 30s
   labels: {}
