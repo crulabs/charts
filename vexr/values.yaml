@@ -1,7 +1,7 @@
 image:
   repository: ghcr.io/sfotiadis/vexr
   # Set explicitly (not derived from appVersion) so that Renovate can update it.
-  tag: "0.1.0"
+  tag: "0.1.1"
   # Optional digest, takes precedence over the tag, e.g. sha256:...
   digest: ""
   pullPolicy: IfNotPresent
