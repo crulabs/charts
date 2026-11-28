@@ -8,3 +8,9 @@
 - ServiceMonitor and PrometheusRule with P1/P2 alerts, optional P3 backlog and operational alerts
   (including unscanned workloads and unexpected internet traffic)
 - Optional CiliumNetworkPolicy
+
+<!-- generated:start -->
+### Features
+
+- add vexr chart
+<!-- generated:end -->
