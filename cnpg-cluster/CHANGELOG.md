@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.1.6]
+
+<!-- generated:start -->
+### Dependencies
+
+- update timescale/timescaledb-ha docker tag to pg18.7-ts2.32.1-r619.1
+- update timescale/timescaledb-ha docker tag to pg16.16-ts2.32.1-r619.1
+<!-- generated:end -->
+
 ## [3.1.5]
 
 - **security**: Updated TimescaleDB images to `pg16.16-ts2.32.1-r617.1` and `pg18.7-ts2.32.1-r617.1`.
