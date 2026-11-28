@@ -1,0 +1,8 @@
+{{- if .Values.crds.install }}
+{{- /* Rendered as a template (not crds/) so that it is updated on upgrades; kept on uninstall. */}}
+{{- $crd := .Files.Get "files/crd.yaml" | fromYaml }}
+{{- $annotations := merge (dict "helm.sh/resource-policy" "keep") ($crd.metadata.annotations | default dict) }}
+{{- $_ := set $crd.metadata "annotations" $annotations }}
+{{- $_ := set $crd.metadata "labels" (include "vexr.labels" . | fromYaml) }}
+{{ toYaml $crd }}
+{{- end }}

@@ -1,0 +1,170 @@
+image:
+  repository: ghcr.io/sfotiadis/vexr
+  # Set explicitly (not derived from appVersion) so that Renovate can update it.
+  tag: "0.1.0"
+  # Optional digest, takes precedence over the tag, e.g. sha256:...
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+# Leader election is always enabled when replicaCount > 1.
+leaderElection:
+  enabled: false
+
+# debug, info, error
+logLevel: info
+
+# Additional command line arguments.
+extraArgs: []
+
+# Additional environment variables, e.g. HTTPS_PROXY / NO_PROXY.
+extraEnv: []
+
+# vexr configuration (config.yaml). Only set what differs from the defaults, see
+# https://github.com/sfotiadis/vexr/blob/main/docs/config.example.yaml
+# Most settings are reloaded without a restart (not: feeds, hubble, vex.configMapSelector).
+config:
+  feeds:
+    cve:
+      # Persists CVE.org lookups across container restarts (see cveCache).
+      cacheFile: /var/cache/vexr/cve.json
+  # hubble:
+  #   enabled: true
+  #   address: hubble-relay.kube-system.svc.cluster.local:80
+  # exposure:
+  #   gateways:
+  #     private: [infra/internal]
+  # exceptions:
+  #   - cve: CVE-2026-12345
+  #     namespace: shop
+  #     action: setPriority
+  #     priority: P3
+  #     until: "2027-01-31"
+  #     reason: "WAF rule blocks the exploit path"
+
+# Restart the pod when the configuration changes. Not needed for most settings because vexr
+# reloads them; enable it if you change feeds or hubble settings often.
+restartOnConfigChange: false
+
+# emptyDir for the CVE.org lookup cache (config.feeds.cve.cacheFile).
+cveCache:
+  sizeLimit: 64Mi
+
+# OpenVEX documents, rendered into ConfigMaps labeled vexr.io/vex=true.
+# The value is either a JSON string or a YAML object.
+vexDocuments: {}
+#  postgres:
+#    "@context": https://openvex.dev/ns/v0.2.0
+#    "@id": https://example.com/vex/postgres
+#    author: Platform Team
+#    timestamp: "2026-11-28T10:00:00Z"
+#    version: 1
+#    statements:
+#      - vulnerability: {name: CVE-2026-76642}
+#        products:
+#          - "@id": pkg:oci/postgresql?repository_url=ghcr.io/cloudnative-pg/postgresql
+#            subcomponents: [{"@id": pkg:deb/debian/bsdutils}]
+#        status: not_affected
+#        justification: vulnerable_code_not_in_execute_path
+
+crds:
+  # Install the VulnerabilityAssessment CRD. It is kept on uninstall.
+  install: true
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+rbac:
+  create: true
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 256Mi
+  limits:
+    memory: 1Gi
+
+priorityClassName: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+service:
+  port: 8080
+
+serviceMonitor:
+  enabled: true
+  interval: 60s
+  scrapeTimeout: 30s
+  labels: {}
+  metricRelabelings: []
+
+prometheusRule:
+  enabled: true
+  labels: {}
+  # Labels added to every alert, e.g. team: platform
+  alertLabels: {}
+  # Keeps alerts firing across short gaps, e.g. while Trivy recreates a report (Prometheus >= 2.42).
+  keepFiringFor: 30m
+  p1:
+    enabled: true
+    severity: critical
+    for: 0m
+  p2:
+    enabled: true
+    severity: warning
+    for: 1h
+  # One alert per workload with P3 findings, for the next update cycle.
+  p3Backlog:
+    enabled: false
+    severity: info
+    for: 24h
+  # vexr down, stale evaluation, feeds, series cap, Hubble.
+  operational:
+    enabled: true
+    severity: warning
+  additionalRules: []
+
+# CiliumNetworkPolicy restricting vexr to what it needs.
+ciliumNetworkPolicy:
+  enabled: false
+  # Endpoints allowed to scrape the metrics port.
+  metricsFrom:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: monitoring
+  # External feeds (HTTPS).
+  fqdns:
+    - www.cisa.gov
+    - epss.cyentia.com
+    - epss.empiricalsecurity.com
+    - cveawg.mitre.org
+    - api.osv.dev
+  # Allow egress to Hubble Relay (only rendered if config.hubble.enabled).
+  hubbleRelay:
+    namespace: kube-system
+    labels:
+      k8s-app: hubble-relay
+    port: 4245
+  extraEgress: []

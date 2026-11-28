@@ -1,0 +1,13 @@
+vexr is running in namespace {{ .Release.Namespace }}.
+
+Prioritized findings per workload:
+  kubectl get vulnerabilityassessments -A
+  kubectl get vas -A -l vexr.io/highest=P1
+
+Metrics:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "vexr.fullname" . }} {{ .Values.service.port }}
+  curl -s localhost:{{ .Values.service.port }}/metrics | grep '^vexr_finding{'
+{{- if not .Values.prometheusRule.enabled }}
+
+prometheusRule.enabled is false: no alerts are created.
+{{- end }}
