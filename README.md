@@ -9,6 +9,7 @@ Helm charts for the CruLabs cluster.
 | [cnpg-cluster](./cnpg-cluster)   | CloudNativePG cluster wrapper        |
 | [tenant](./tenant)       | Manages Flux CD tenants              |
 | [tenant-access](./tenant-access)       | Manages cross-tenant and user RBAC bindings              |
+| [vexr](./vexr)         | Prioritizes Trivy vulnerability reports (P1-P4) and alerts via Prometheus |
 
 ## Registry
 

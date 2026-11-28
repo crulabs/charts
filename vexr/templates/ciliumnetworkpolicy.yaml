@@ -1,0 +1,64 @@
+{{- if .Values.ciliumNetworkPolicy.enabled }}
+{{- $p := .Values.ciliumNetworkPolicy }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "vexr.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "vexr.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "vexr.selectorLabels" . | nindent 6 }}
+  ingress:
+    # Prometheus scrapes the metrics port.
+    - fromEndpoints:
+        {{- toYaml $p.metricsFrom | nindent 8 }}
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    # Kubelet health probes.
+    - fromEntities: [host, remote-node]
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+  egress:
+    - toEntities: [kube-apiserver]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toFQDNs:
+        {{- range $p.fqdns }}
+        - matchName: {{ . | quote }}
+        {{- end }}
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    {{- if include "vexr.hubbleEnabled" . }}
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: {{ $p.hubbleRelay.namespace }}
+            {{- range $k, $v := $p.hubbleRelay.labels }}
+            k8s:{{ $k }}: {{ $v | quote }}
+            {{- end }}
+      toPorts:
+        - ports:
+            - port: {{ $p.hubbleRelay.port | quote }}
+              protocol: TCP
+    {{- end }}
+    {{- with $p.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

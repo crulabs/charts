@@ -1,0 +1,168 @@
+{{- if .Values.prometheusRule.enabled }}
+{{- $r := .Values.prometheusRule }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "vexr.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "vexr.labels" . | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: vexr.findings
+      rules:
+        {{- if $r.p1.enabled }}
+        - alert: VexrP1Vulnerability
+          expr: vexr_finding{priority="P1"} == 1
+          for: {{ $r.p1.for }}
+          {{- with $r.keepFiringFor }}
+          keep_firing_for: {{ . }}
+          {{- end }}
+          labels:
+            severity: {{ $r.p1.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: {{`"P1: {{ $labels.cve }} in {{ $labels.namespace }}/{{ $labels.workload }}"`}}
+            description: >-
+              {{`{{ $labels.package }} {{ $labels.installed_version }} in container {{ $labels.container }}
+              ({{ $labels.image }}:{{ $labels.image_tag }}). Exploitation: {{ $labels.exploitation }},
+              KEV: {{ $labels.kev }}, exposure: {{ $labels.exposure }}, attack vector: {{ $labels.attack_vector }}.
+              Fix: {{ if $labels.fixed_version }}{{ $labels.fixed_version }}{{ else }}none available{{ end }}.
+              Details: kubectl get vas -n {{ $labels.namespace }} -o yaml`}}
+            title: {{`"{{ $labels.title }}"`}}
+            link: {{`"https://nvd.nist.gov/vuln/detail/{{ $labels.cve }}"`}}
+        {{- end }}
+        {{- if $r.p2.enabled }}
+        - alert: VexrP2Vulnerability
+          expr: vexr_finding{priority="P2"} == 1
+          for: {{ $r.p2.for }}
+          {{- with $r.keepFiringFor }}
+          keep_firing_for: {{ . }}
+          {{- end }}
+          labels:
+            severity: {{ $r.p2.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: {{`"P2: {{ $labels.cve }} in {{ $labels.namespace }}/{{ $labels.workload }}"`}}
+            description: >-
+              {{`{{ $labels.package }} {{ $labels.installed_version }} ({{ $labels.image }}:{{ $labels.image_tag }}),
+              exposure {{ $labels.exposure }}, exploitation {{ $labels.exploitation }}.
+              Fix: {{ if $labels.fixed_version }}{{ $labels.fixed_version }}{{ else }}none available{{ end }}.`}}
+            title: {{`"{{ $labels.title }}"`}}
+            link: {{`"https://nvd.nist.gov/vuln/detail/{{ $labels.cve }}"`}}
+        {{- end }}
+        {{- if $r.p3Backlog.enabled }}
+        - alert: VexrP3Backlog
+          expr: sum by (namespace, workload_kind, workload) (vexr_findings{priority="P3"}) > 0
+          for: {{ $r.p3Backlog.for }}
+          labels:
+            severity: {{ $r.p3Backlog.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: {{`"{{ $value }} P3 findings in {{ $labels.namespace }}/{{ $labels.workload }}"`}}
+            description: {{`"Fix in the next regular update cycle. Details: kubectl get vas -n {{ $labels.namespace }}"`}}
+        {{- end }}
+        {{- with $r.additionalRules }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- if $r.operational.enabled }}
+    - name: vexr.operations
+      rules:
+        - alert: VexrDown
+          expr: absent(max(vexr_leader) == 1)
+          for: 15m
+          labels:
+            severity: {{ $r.operational.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: vexr is not running or has no leader, vulnerabilities are not being prioritized
+        - alert: VexrEvaluationStale
+          expr: time() - vexr_last_evaluation_timestamp_seconds > 3600
+          for: 15m
+          labels:
+            severity: {{ $r.operational.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: vexr has not evaluated for more than an hour
+        - alert: VexrFeedStale
+          expr: time() - vexr_feed_last_success_timestamp_seconds{feed=~"kev|epss"} > 2 * 86400
+          labels:
+            severity: {{ $r.operational.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: {{`"Feed {{ $labels.feed }} has not been updated for more than 2 days"`}}
+        - alert: VexrFeedDown
+          expr: vexr_feed_up{feed=~"kev|epss"} == 0
+          for: 6h
+          labels:
+            severity: {{ $r.operational.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: {{`"Feed {{ $labels.feed }} cannot be fetched"`}}
+        - alert: VexrUnscannedWorkload
+          expr: vexr_unscanned_containers > 0
+          for: 1h
+          labels:
+            severity: {{ $r.operational.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: {{`"{{ $value }} containers of {{ $labels.namespace }}/{{ $labels.workload }} have no vulnerability report"`}}
+            description: >-
+              Trivy has not scanned these containers, so their vulnerabilities are unknown. Check the
+              trivy-operator scan jobs (image pull secrets, registry access, scan job limits).
+        - alert: VexrFindingSeriesCapped
+          expr: vexr_finding_series_dropped > 0
+          for: 1h
+          labels:
+            severity: {{ $r.operational.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: {{`"{{ $value }} findings are not exported because metrics.maxFindingSeries was reached"`}}
+        {{- if include "vexr.hubbleEnabled" . }}
+        - alert: VexrUnexpectedInternetTraffic
+          expr: vexr_workload_info{exposure="internet-observed", static_exposure!="internet"} == 1
+          for: 15m
+          labels:
+            severity: {{ $r.operational.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: {{`"{{ $labels.namespace }}/{{ $labels.workload }} receives internet traffic"`}}
+            description: >-
+              {{`Hubble observed traffic from public IPs although the configured exposure is
+              {{ $labels.static_exposure }}. Check the gateway/load balancer and the vexr exposure configuration.`}}
+        - alert: VexrHubbleDisconnected
+          expr: vexr_hubble_connected == 0
+          for: 30m
+          labels:
+            severity: {{ $r.operational.severity }}
+            {{- with $r.alertLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            summary: vexr is not connected to Hubble Relay, observed exposure is missing
+        {{- end }}
+    {{- end }}
+{{- end }}

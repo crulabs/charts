@@ -1,0 +1,286 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: vulnerabilityassessments.vexr.io
+spec:
+  group: vexr.io
+  names:
+    categories:
+    - vexr
+    kind: VulnerabilityAssessment
+    listKind: VulnerabilityAssessmentList
+    plural: vulnerabilityassessments
+    shortNames:
+    - vas
+    singular: vulnerabilityassessment
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .assessment.workload.kind
+      name: Kind
+      type: string
+    - jsonPath: .assessment.workload.name
+      name: Workload
+      type: string
+    - jsonPath: .assessment.container
+      name: Container
+      type: string
+    - jsonPath: .assessment.summary.highest
+      name: Highest
+      type: string
+    - jsonPath: .assessment.summary.p1
+      name: P1
+      type: integer
+    - jsonPath: .assessment.summary.p2
+      name: P2
+      type: integer
+    - jsonPath: .assessment.summary.p3
+      name: P3
+      type: integer
+    - jsonPath: .assessment.summary.p4
+      name: P4
+      type: integer
+    - jsonPath: .assessment.context.exposure
+      name: Exposure
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VulnerabilityAssessment is the prioritized, enriched view of one Trivy
+          VulnerabilityReport. It is written by vexr and has the same name and namespace
+          as the report it was derived from.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          assessment:
+            description: Assessment holds the evaluation result.
+            properties:
+              container:
+                description: Container is the container name the image belongs to.
+                type: string
+              context:
+                description: Context holds the environment facts used for scoring.
+                properties:
+                  blastRadius:
+                    description: BlastRadius is one of high, normal.
+                    type: string
+                  blastRadiusReasons:
+                    items:
+                      type: string
+                    type: array
+                  criticality:
+                    description: Criticality is the namespace criticality.
+                    type: string
+                  egressInternet:
+                    description: EgressInternet is one of observed, not-observed,
+                      unknown.
+                    type: string
+                  exposure:
+                    description: |-
+                      Exposure is the effective exposure: internet-observed, internet, network-observed, network,
+                      cluster or isolated.
+                    type: string
+                  exposureReasons:
+                    items:
+                      type: string
+                    type: array
+                  staticExposure:
+                    description: |-
+                      StaticExposure is the exposure derived from the configuration and cluster objects, before
+                      Hubble observations: internet, network, cluster or isolated.
+                    type: string
+                required:
+                - blastRadius
+                - criticality
+                - egressInternet
+                - exposure
+                - staticExposure
+                type: object
+              evaluatedAt:
+                description: EvaluatedAt is the time the content of this assessment
+                  last changed.
+                format: date-time
+                type: string
+              findings:
+                description: Findings lists individual findings, ordered by priority.
+                items:
+                  description: Finding is a single prioritized vulnerability.
+                  properties:
+                    aliases:
+                      description: Aliases are the CVE IDs of a non-CVE ID (e.g. GHSA),
+                        resolved via OSV.
+                      items:
+                        type: string
+                      type: array
+                    attackVector:
+                      description: AttackVector is one of network, adjacent, local,
+                        physical, unknown.
+                      type: string
+                    epss:
+                      description: EPSS is the EPSS probability (0-1).
+                      type: string
+                    exploitation:
+                      description: Exploitation is one of active, poc, none.
+                      type: string
+                    exploitationData:
+                      description: ExploitationData is "unavailable" if the ID cannot
+                        be mapped to a CVE, so exploitation is unknown.
+                      type: string
+                    fixedVersion:
+                      type: string
+                    id:
+                      type: string
+                    installedVersion:
+                      type: string
+                    kev:
+                      type: boolean
+                    kevRansomware:
+                      type: boolean
+                    package:
+                      type: string
+                    priority:
+                      type: string
+                    reasons:
+                      items:
+                        type: string
+                      type: array
+                    rule:
+                      type: string
+                    score:
+                      description: Score is the CVSS base score as reported by Trivy.
+                      type: string
+                    severity:
+                      type: string
+                    suppressed:
+                      type: boolean
+                    suppressedBy:
+                      type: string
+                    title:
+                      type: string
+                  required:
+                  - attackVector
+                  - exploitation
+                  - id
+                  - installedVersion
+                  - package
+                  - priority
+                  - severity
+                  type: object
+                type: array
+              findingsTruncated:
+                description: FindingsTruncated is true if not all findings are listed.
+                type: boolean
+              image:
+                description: Image is the scanned image.
+                properties:
+                  digest:
+                    type: string
+                  registry:
+                    type: string
+                  repository:
+                    type: string
+                  tag:
+                    type: string
+                required:
+                - repository
+                type: object
+              report:
+                description: Report is the name of the source VulnerabilityReport.
+                type: string
+              resource:
+                description: Resource is the resource scanned by Trivy (e.g. a ReplicaSet
+                  or Pod).
+                properties:
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              stale:
+                description: |-
+                  Stale is true if the source report was deleted (e.g. by the Trivy report TTL)
+                  and the assessment is kept during the configured grace period.
+                type: boolean
+              summary:
+                description: Summary holds the number of findings per priority.
+                properties:
+                  highest:
+                    description: Highest is the most urgent priority of all findings,
+                      or "none".
+                    type: string
+                  p1:
+                    type: integer
+                  p2:
+                    type: integer
+                  p3:
+                    type: integer
+                  p4:
+                    type: integer
+                  suppressed:
+                    type: integer
+                  withoutExploitationData:
+                    description: WithoutExploitationData counts findings whose ID
+                      cannot be mapped to a CVE (e.g. BDSA).
+                    type: integer
+                required:
+                - highest
+                - p1
+                - p2
+                - p3
+                - p4
+                - suppressed
+                - withoutExploitationData
+                type: object
+              workload:
+                description: Workload is the top-level owner of the scanned resource
+                  (e.g. a Deployment).
+                properties:
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+            required:
+            - container
+            - context
+            - evaluatedAt
+            - image
+            - report
+            - resource
+            - summary
+            - workload
+            type: object
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+        required:
+        - assessment
+        type: object
+    served: true
+    storage: true
+    subresources: {}
