@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.6]
+
+<!-- generated:start -->
+### Documentation
+
+- move tenant and tenant-access changelogs to CHANGELOG.md
+
+### Chores
+
+- add home and sources to chart metadata
+<!-- generated:end -->
+
 ## [0.1.5]
 
 - **security:** updated kubeconfig generator image to `alpine/k8s:1.37.2`
