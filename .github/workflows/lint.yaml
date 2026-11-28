@@ -31,5 +31,5 @@ jobs:
 
       - name: Lint changed charts
         env:
-          CHECK_VERSION: ${{ !endsWith(github.event.pull_request.user.login, '[bot]') }}
+  CHECK_VERSION: ${{ !startsWith(github.event.pull_request.head.ref, 'renovate/') }}
         run: ct lint --config .github/ct/ct.yaml --check-version-increment="$CHECK_VERSION"
