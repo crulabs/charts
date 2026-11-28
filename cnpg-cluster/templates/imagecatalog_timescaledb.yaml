@@ -10,5 +10,5 @@ spec:
     - major: 16
       image: timescale/timescaledb-ha:pg16.16-ts2.32.1-r619.1
     - major: 18
-      image: timescale/timescaledb-ha:pg18.7-ts2.32.1-r617.1
+      image: timescale/timescaledb-ha:pg18.7-ts2.32.1-r619.1
 {{ end }}
