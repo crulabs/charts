@@ -3,7 +3,7 @@ name: vexr
 description: Prioritizes Trivy Operator vulnerability reports (P1-P4) using CISA KEV, EPSS, network exposure and Hubble, exported as Prometheus metrics and alerts
 type: application
 version: 0.1.1
-appVersion: "0.1.0"
+appVersion: "0.1.1"
 home: https://github.com/crulabs/charts/tree/main/vexr
 sources:
   - https://github.com/crulabs/charts
