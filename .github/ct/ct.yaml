@@ -7,4 +7,5 @@ chart-dirs:
 excluded-charts: []
 lint-conf: .github/ct/lintconf.yaml
 validate-maintainers: false
-check-version-increment: true
+# Changes are merged without a version bump and released with the next bump.
+check-version-increment: false

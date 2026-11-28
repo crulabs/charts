@@ -1,9 +1,8 @@
 name: lint
 
 # Lints the charts changed in a pull request with chart-testing (helm lint,
-# yamllint, Chart.yaml schema) and checks that their version was bumped.
-# Renovate pull requests update images without bumping the chart version, so
-# the version check is skipped for bots.
+# yamllint, Chart.yaml schema). A version bump is not required: changes can be
+# merged without one and are released with the next bump (see release.yaml).
 on:
   pull_request:
 
@@ -30,7 +29,4 @@ jobs:
       - uses: helm/chart-testing-action@v2.9.0
 
       - name: Lint changed charts
-        env:
-          # Renovate updates images without bumping the chart version; its branches start with renovate/.
-          CHECK_VERSION: ${{ !startsWith(github.event.pull_request.head.ref, 'renovate/') }}
-        run: ct lint --config .github/ct/ct.yaml --check-version-increment="$CHECK_VERSION"
+        run: ct lint --config .github/ct/ct.yaml
