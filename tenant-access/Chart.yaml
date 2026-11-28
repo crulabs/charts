@@ -2,7 +2,7 @@ apiVersion: v2
 name: tenant-access
 description: Manages tenant users, ServiceAccounts, RoleBindings and kubeconfigs across team namespaces
 type: application
-version: 0.1.5
+version: 0.1.6
 home: https://github.com/crulabs/charts/tree/main/tenant-access
 sources:
   - https://github.com/crulabs/charts
