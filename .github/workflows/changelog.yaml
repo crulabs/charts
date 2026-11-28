@@ -18,11 +18,12 @@ concurrency:
 
 jobs:
   changelog:
-    # Only for pull requests from branches of this repository, not from bots
-    # like Renovate (they do not bump chart versions).
+    # Only for pull requests from branches of this repository, not from Renovate
+    # (it does not bump chart versions). Renovate runs with a user token, so it is
+    # recognized by its branch prefix, not by a [bot] login.
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      !endsWith(github.event.pull_request.user.login, '[bot]')
+      !startsWith(github.event.pull_request.head.ref, 'renovate/')
     runs-on: ubuntu-latest
     permissions:
       contents: write

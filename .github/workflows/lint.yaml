@@ -31,5 +31,6 @@ jobs:
 
       - name: Lint changed charts
         env:
-  CHECK_VERSION: ${{ !startsWith(github.event.pull_request.head.ref, 'renovate/') }}
+          # Renovate updates images without bumping the chart version; its branches start with renovate/.
+          CHECK_VERSION: ${{ !startsWith(github.event.pull_request.head.ref, 'renovate/') }}
         run: ct lint --config .github/ct/ct.yaml --check-version-increment="$CHECK_VERSION"

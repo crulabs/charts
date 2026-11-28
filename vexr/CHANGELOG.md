@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.2]
+
+- **security:** updated the vexr image to `0.1.1` (dependency updates: Kubernetes client libraries,
+  protobuf, gRPC, golang.org/x/time)
+
 ## [0.1.1]
 
 - **fix:** the ServiceMonitor sets `honorLabels: true` (`serviceMonitor.honorLabels`). Before, Prometheus

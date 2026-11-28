@@ -1,6 +1,6 @@
 # vexr
 
-![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.0](https://img.shields.io/badge/AppVersion-0.1.0-informational?style=flat-square)
+![Version: 0.1.2](https://img.shields.io/badge/Version-0.1.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.1](https://img.shields.io/badge/AppVersion-0.1.1-informational?style=flat-square)
 
 This Helm chart deploys [vexr](https://github.com/sfotiadis/vexr), a controller that prioritizes the
 VulnerabilityReports of the Trivy Operator into P1 (act now) to P4 (backlog) using CISA KEV, EPSS,
@@ -84,7 +84,7 @@ spec:
 | Parameter | Description | Default |
 |---|---|---|
 | `image.repository` | Image repository | `ghcr.io/sfotiadis/vexr` |
-| `image.tag` | Image tag | `0.1.0` |
+| `image.tag` | Image tag | `0.1.1` |
 | `image.digest` | Image digest, takes precedence over the tag | `""` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `imagePullSecrets` | Image pull secrets | `[]` |
